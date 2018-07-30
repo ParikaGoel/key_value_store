@@ -1,6 +1,6 @@
 #include "key_value_store.h"
 
-// Implementation of class "value"
+// Implementation of class "Value"
 bool Value::isAvailable() {
 	return m_available;
 }
@@ -19,7 +19,8 @@ void Value::setAvailability(bool avail) {
 
 //Implementation of class "mapDB"
 string MapDB::get(string key) {
-	Value retrieved_value = cache[key];
+	Key entryKey(key);
+	Value retrieved_value = cache[entryKey];
 	return retrieved_value.getValue();
 }
 
@@ -27,16 +28,20 @@ void MapDB::set(string key, string value) {
 	Value newValue;
 	newValue.setAvailability(false);
 	newValue.setValue(value);
-	if (cache.count(key)) {
-		Value retrieved_value = cache[key];
+	Key entryKey(key);
+	if (cache.count(entryKey)) {
+		Value retrieved_value = cache[entryKey];
 		if (retrieved_value.isAvailable()) {
-			cache[key] = newValue;
+			cache[entryKey] = newValue;
 		}
 	}
 	else {
-		cache.insert(pair <string, Value> (key, newValue));
+		cache.insert(pair <Key, Value> (entryKey, newValue));
 	}
 	newValue.setAvailability(true);
 }
 
-
+void MapDB::remove(string key) {
+	Key entryKey(key);
+	cache.erase(entryKey);
+}
