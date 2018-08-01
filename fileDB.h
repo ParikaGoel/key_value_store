@@ -4,17 +4,20 @@
 #include "fstream"
 #include "string"
 #include "vector"
-#include "key_value_store.h"
+#include "fstream"
 
-class csv_parser {
+using namespace std;
+
+class fileDB {
 private:
 	std::fstream m_file;
 public:
-	csv_parser();
-	~csv_parser();
+	fileDB();
+	~fileDB();
 	int open(std::string &filename);
 	string read(string key);
 	void write(string key, string value);
+	void modify(string key, string value);
 	void remove(string key);
 };
 

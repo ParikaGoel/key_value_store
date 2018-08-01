@@ -17,31 +17,79 @@ void Value::setAvailability(bool avail) {
 	m_available = avail;
 }
 
-//Implementation of class "mapDB"
+// Implementation of class "evictionFIFO"
+size_t evictionFIFO::getSize() {
+	return evictionQueue.size();
+}
+
+string evictionFIFO::getFrontElement() {
+	return evictionQueue.front();
+}
+
+void evictionFIFO::updateEvictionQueue(string new_key) {
+	if(!evictionQueue.empty())
+		evict();
+	evictionQueue.push(new_key);
+}
+
+void evictionFIFO::pushEntry(string key) {
+	evictionQueue.push(key);
+}
+
+void evictionFIFO::evict() {
+	evictionQueue.pop();
+}
+
+// Implementation of class "mapDB"
 string MapDB::get(string key) {
-	Key entryKey(key);
-	Value retrieved_value = cache[entryKey];
-	return retrieved_value.getValue();
+	if (cache.count(key))
+		return cache[key].getValue();
+	else {
+		string value = m_file.read(key);
+		if (value != "\0") {
+			Value newValue;
+			newValue.setValue(value);
+			if (evictionTable.getSize() < evictionTableSize) {
+				evictionTable.pushEntry(key);
+				cache[key] = newValue;
+			}
+			else {
+				string key_to_remove = evictionTable.getFrontElement();
+				remove(key_to_remove);
+				evictionTable.updateEvictionQueue(key);
+				cache[key] = newValue;
+			}
+		}
+		return value;
+	}		
 }
 
 void MapDB::set(string key, string value) {
 	Value newValue;
 	newValue.setAvailability(false);
 	newValue.setValue(value);
-	Key entryKey(key);
-	if (cache.count(entryKey)) {
-		Value retrieved_value = cache[entryKey];
+	if (cache.count(key)) {
+		Value retrieved_value = cache[key];
 		if (retrieved_value.isAvailable()) {
-			cache[entryKey] = newValue;
+			cache[key] = newValue;
+			m_file.modify(key,value);
 		}
 	}
 	else {
-		cache.insert(pair <Key, Value> (entryKey, newValue));
+		if (evictionTable.getSize() == evictionTableSize) {
+			string key_to_evict = evictionTable.getFrontElement();
+			cache.erase(key_to_evict);
+			evictionTable.updateEvictionQueue(key);
+		}
+		else
+			evictionTable.pushEntry(key);
+		cache.insert(pair <string, Value> (key, newValue));
+		m_file.modify(key, value);
 	}
 	newValue.setAvailability(true);
 }
 
 void MapDB::remove(string key) {
-	Key entryKey(key);
-	cache.erase(entryKey);
+	cache.erase(key);
+	m_file.remove(key);
 }
